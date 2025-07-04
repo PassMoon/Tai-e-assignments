@@ -25,6 +25,7 @@ package pascal.taie.analysis.dataflow.analysis;
 import pascal.taie.analysis.dataflow.fact.SetFact;
 import pascal.taie.analysis.graph.cfg.CFG;
 import pascal.taie.config.AnalysisConfig;
+import pascal.taie.ir.exp.RValue;
 import pascal.taie.ir.exp.Var;
 import pascal.taie.ir.stmt.Stmt;
 
@@ -48,23 +49,51 @@ public class LiveVariableAnalysis extends
     @Override
     public SetFact<Var> newBoundaryFact(CFG<Stmt> cfg) {
         // TODO - finish me
-        return null;
+        // 返回边界条件全为0
+        return new SetFact<>();
     }
 
     @Override
     public SetFact<Var> newInitialFact() {
         // TODO - finish me
-        return null;
+        // 初始化所有基本块输入为0
+        return new SetFact<>();
     }
 
     @Override
     public void meetInto(SetFact<Var> fact, SetFact<Var> target) {
         // TODO - finish me
+        // 合并所有后继基本块输入
+        target.union(fact);
     }
 
     @Override
     public boolean transferNode(Stmt stmt, SetFact<Var> in, SetFact<Var> out) {
         // TODO - finish me
-        return false;
+        // 判断基本块中语句，使用了变1，重新定义变0
+        // 修改in，所以out不变
+
+        SetFact<Var> Intemp = new SetFact<>();
+        Intemp.union(out);
+
+        if(stmt.getDef().isPresent()){
+            if(stmt.getDef().get() instanceof Var){
+                Intemp.remove((Var)stmt.getDef().get());
+            }
+        }
+
+        for(RValue r : stmt.getUses()){
+            if(r instanceof Var){
+                Intemp.add((Var)r);
+            }
+        }
+
+        if (!in.equals(Intemp)) {
+            in.set(Intemp); // 把新值设置进去
+            return true;
+        } else {
+            return false;
+        }
+
     }
 }
